@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
@@ -68,3 +69,7 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+=======
+# Library-Management-System
+A full-stack Library Management System built using React.js, Tailwind CSS, and Python (Flask). This project allows efficient management of books, users, and library transactions through a modern web interface.
+>>>>>>> f3f766dabfa3e8bc7636fc66b2b0dbeeed9f1aca
