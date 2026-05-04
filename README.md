@@ -107,3 +107,33 @@ http://localhost:3000
 ## ⭐ Support
 
 If you like this project, give it a ⭐ on GitHub!
+
+## 🖼 Screenshots
+
+### 🏠 Home Page
+
+![Home](./frontend/main/public/screenshort/home%20page.png)
+
+---
+
+### 👤 User Dashboard
+
+![User Dashboard](./frontend/main/public/screenshort/user%20dashboard.png)
+
+---
+
+### 🛠 Admin Dashboard
+
+![Admin Dashboard](./frontend//main/public/screenshort/admin.png)
+
+---
+
+### ➕ Add Book Page
+
+![Add Book](./frontend//main/public/screenshort/addbook.png)
+
+---
+
+### 📖 PDF Reader
+
+![PDF Reader](./frontend/main/public/screenshort/pdf.png)
