@@ -1,75 +1,109 @@
-<<<<<<< HEAD
-# Getting Started with Create React App
+# 📚 Library Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern **Full-Stack Library Management System** built using:
 
-## Available Scripts
+- ⚛️ React.js (Frontend)
+- 🎨 Tailwind CSS (UI Design)
+- 🐍 Python Flask (Backend)
+- 🗄 SQLite (Database)
 
-In the project directory, you can run:
+This system allows users to browse and read books online, while admins can manage books, users, and library data.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🚀 Features
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 👤 User Side
 
-### `npm test`
+- 🔍 Search books
+- 📖 Read PDF books online
+- 🖼 View book covers
+- ⚡ Fast and responsive UI
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 🛠 Admin Side
 
-### `npm run build`
+- ➕ Add Books / Magazines / Journals
+- 🗑 Delete Books
+- 👥 Manage Users (Delete users)
+- 🔐 Secure login system (JWT Authentication)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📂 Project Structure
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+library-management-system/
+│
+├── backend/        # Flask API
+├── frontend/       # React App
+├── uploads/        # Uploaded files (ignored in git)
+└── library.db      # Database (ignored in git)
+```
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## ⚙️ Installation & Setup
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 1️⃣ Clone Repository
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```
+git clone https://github.com/your-username/library-management-system.git
+cd library-management-system
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+### 2️⃣ Backend Setup (Flask)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python app.py
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+👉 Backend will run on:
+http://127.0.0.1:5000
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### 3️⃣ Frontend Setup (React)
 
-### Analyzing the Bundle Size
+```
+cd frontend/main
+npm install
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+👉 Frontend will run on:
+http://localhost:3000
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🛡 Security
 
-### Advanced Configuration
+- Password hashing using bcrypt
+- JWT-based authentication
+- Protected admin routes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## 📌 Future Improvements
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+- 📱 Mobile responsive UI improvements
+- 📊 Dashboard analytics
+- 📚 Borrow system with due dates
+- 🌐 Deployment (Netlify + Render)
 
-### `npm run build` fails to minify
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-=======
-# Library-Management-System
-A full-stack Library Management System built using React.js, Tailwind CSS, and Python (Flask). This project allows efficient management of books, users, and library transactions through a modern web interface.
->>>>>>> f3f766dabfa3e8bc7636fc66b2b0dbeeed9f1aca
+## 👨‍💻 Author
+
+**Muhammad Moosa**
+
+---
+
+## ⭐ Support
+
+If you like this project, give it a ⭐ on GitHub!
