@@ -1,132 +1,124 @@
 import React, { useState } from "react";
 
 function AddBook() {
-  const [book, setBook] = useState({
-    title: "",
-    author: "",
-    quantity: "",
-  });
-
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [category, setCategory] = useState("book");
   const [file, setFile] = useState(null);
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setBook({ ...book, [e.target.name]: e.target.value });
-  };
-
-  const handleAdd = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const user = JSON.parse(localStorage.getItem("user"));
-    const token = user?.token;
-
-    if (!token) {
-      alert("Login required ❌");
-      return;
-    }
-
-    if (!book.title || !book.author || !book.quantity) {
-      alert("Please fill all fields ❌");
-      return;
-    }
 
     const formData = new FormData();
-    formData.append("title", book.title);
-    formData.append("author", book.author);
-    formData.append("quantity", book.quantity);
-
-    if (file) formData.append("file", file);
-    if (image) formData.append("image", image);
+    formData.append("title", title);
+    formData.append("author", author);
+    formData.append("category", category);
+    formData.append("file", file);
+    formData.append("image", image);
 
     try {
-      setLoading(true);
-
       const res = await fetch("http://127.0.0.1:5000/add-book", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${user.token}`,
         },
         body: formData,
       });
 
       const data = await res.json();
 
-      console.log("ADD BOOK RESPONSE:", data);
-
-      if (res.status === 401) {
-        alert("Session expired ❌ Please login again");
-        return;
-      }
-
-      if (data.status === "success") {
-        alert("📚 Book Added Successfully");
-
-        setBook({ title: "", author: "", quantity: "" });
+      if (res.ok) {
+        alert("✅ Successfully Added!");
+        setTitle("");
+        setAuthor("");
+        setCategory("book");
         setFile(null);
         setImage(null);
       } else {
-        alert(data.error || "Failed to add book");
+        alert(data.error || "❌ Error adding item");
       }
     } catch (err) {
-      console.log(err);
-      alert("Server error ❌");
+      alert("Server Error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-md">
-      <h2 className="text-xl font-bold mb-4">📚 Add New Book</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white p-6">
 
-      <form onSubmit={handleAdd} className="flex flex-col gap-3">
-        <input
-          name="title"
-          value={book.title}
-          placeholder="Book Title"
-          onChange={handleChange}
-          className="border p-2"
-        />
+      {/* CARD */}
+      <div className="w-full max-w-xl bg-gray-900 rounded-2xl shadow-xl p-6 border border-gray-700">
 
-        <input
-          name="author"
-          value={book.author}
-          placeholder="Author"
-          onChange={handleChange}
-          className="border p-2"
-        />
+        <h2 className="text-2xl font-bold text-center mb-6 text-blue-400">
+          📚 Add Book / Magazine / Journal
+        </h2>
 
-        <input
-          name="quantity"
-          value={book.quantity}
-          placeholder="Quantity"
-          onChange={handleChange}
-          className="border p-2"
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-        {/* PDF */}
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={(e) => setFile(e.target.files[0])}
-        />
+          {/* TITLE */}
+          <input
+            className="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:border-blue-500 outline-none"
+            placeholder="Enter Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
 
-        {/* IMAGE */}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setImage(e.target.files[0])}
-        />
+          {/* AUTHOR */}
+          <input
+            className="w-full p-3 rounded bg-gray-800 border border-gray-700 focus:border-blue-500 outline-none"
+            placeholder="Enter Author"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+          />
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white p-2 rounded"
-          disabled={loading}
-        >
-          {loading ? "Adding Book..." : "Add Book"}
-        </button>
-      </form>
+          {/* CATEGORY */}
+          <select
+            className="w-full p-3 rounded bg-gray-800 border border-gray-700"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="book">📘 Book</option>
+            <option value="magazine">📰 Magazine</option>
+            <option value="journal">📚 Journal</option>
+          </select>
+
+          {/* FILE UPLOAD */}
+          <div>
+            <label className="text-sm text-gray-400">Upload PDF File</label>
+            <input
+              type="file"
+              className="w-full mt-1 p-2 bg-gray-800 rounded"
+              onChange={(e) => setFile(e.target.files[0])}
+            />
+          </div>
+
+          {/* IMAGE UPLOAD */}
+          <div>
+            <label className="text-sm text-gray-400">Upload Cover Image</label>
+            <input
+              type="file"
+              className="w-full mt-1 p-2 bg-gray-800 rounded"
+              onChange={(e) => setImage(e.target.files[0])}
+            />
+          </div>
+
+          {/* BUTTON */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 transition p-3 rounded font-semibold"
+          >
+            {loading ? "Adding..." : "➕ Add Item"}
+          </button>
+
+        </form>
+      </div>
     </div>
   );
 }

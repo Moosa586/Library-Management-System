@@ -1,13 +1,25 @@
 import React from "react";
+import Logo from "../Images/logo.webp"; // 👈 apna logo path
 
 function About() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-gray-800 text-white">
       {/* HERO */}
       <div className="text-center py-20 px-6">
+        {/* LOGO */}
+        <div className="flex justify-center mb-6">
+          <img
+            src={Logo}
+            alt="Library Logo"
+            className="w-24 h-24 md:w-32 md:h-32 object-contain drop-shadow-lg rounded-full border border-white/20"
+          />
+        </div>
+
+        {/* HEADING */}
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
           About Our Library System
         </h1>
+
         <p className="max-w-2xl mx-auto text-gray-300 text-lg">
           A modern digital solution designed to simplify library management,
           improve user experience, and bring books closer to everyone.
@@ -72,17 +84,16 @@ function About() {
         </div>
       </div>
 
-      {/* TEAM / INFO */}
+      {/* MISSION */}
       <div className="px-8 py-16 text-center">
         <h2 className="text-3xl font-bold mb-6">Our Mission</h2>
         <p className="max-w-3xl mx-auto text-gray-300">
           Our goal is to transform traditional libraries into digital platforms
-          where users can easily access books anytime, anywhere. We aim to make
-          knowledge more accessible, efficient, and engaging for everyone.
+          where users can easily access books anytime, anywhere.
         </p>
       </div>
 
-      {/* FOOTER CTA */}
+      {/* CTA */}
       <div className="text-center pb-16">
         <h3 className="text-xl mb-4">Ready to explore?</h3>
         <a

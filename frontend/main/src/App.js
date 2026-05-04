@@ -15,8 +15,7 @@ import Reports from "./Pages/Report";
 import Navbar from "./Compoenets/Navbar";
 import Footer from "./Pages/Footer";
 import About from "./Pages/About";
-import Books from "./Pages/Books";
-
+import Books from "./Pages/Books"
 import ProtectedRoute from "./Routes/ProtectedRoute";
 
 function App() {

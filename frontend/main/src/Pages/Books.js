@@ -2,98 +2,150 @@ import React, { useEffect, useState } from "react";
 
 function Books() {
   const [books, setBooks] = useState([]);
-  const [selectedBook, setSelectedBook] = useState(null);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // FETCH BOOKS
   const fetchBooks = async () => {
     try {
+      setLoading(true);
+
       const res = await fetch("http://127.0.0.1:5000/books", {
         headers: {
-          Authorization: `Bearer ${user?.token}`,
+          Authorization: `Bearer ${user?.token || ""}`,
         },
       });
 
       const data = await res.json();
-      setBooks(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.log(err);
-      alert("Failed to load books");
+
+      console.log("BOOKS API RESPONSE:", data);
+
+      // ✅ SAFE CHECK (IMPORTANT FIX)
+      if (Array.isArray(data)) {
+        setBooks(data);
+      } else {
+        setBooks([]);
+        console.log("Invalid books response:", data);
+      }
+    } catch (error) {
+      console.log("Error loading books:", error);
+      setBooks([]);
     }
+
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchBooks();
   }, []);
 
+  // ✅ SAFE FILTER (CRASH FIX)
+  const filteredBooks = (books || []).filter((b) => {
+    const title = b?.title?.toLowerCase() || "";
+    const author = b?.author?.toLowerCase() || "";
+    const query = search.toLowerCase();
+
+    return title.includes(query) || author.includes(query);
+  });
+
+  // BORROW REQUEST
+  const requestBorrow = async (id) => {
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/request-borrow/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${user?.token || ""}`,
+        },
+      });
+
+      const data = await res.json();
+      alert(data.message || "Request sent");
+    } catch (err) {
+      alert("Error sending request");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-6">
-      <h1 className="text-3xl font-bold mb-6">📚 Library Books</h1>
+    <div className="min-h-screen bg-black text-white px-6 py-10">
+      {/* HEADER */}
+      <h1 className="text-3xl font-bold text-center text-blue-400 mb-6">
+        📚 Library Books Collection
+      </h1>
 
-      {/* BOOK GRID */}
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {books.map((b) => (
-          <div
-            key={b.id}
-            className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-xl hover:scale-105 transition"
-          >
-            {/* IMAGE */}
-            <div className="h-40 bg-gray-800 rounded-lg mb-3 flex items-center justify-center">
-              {b.image ? (
-                <img
-                  src={`http://127.0.0.1:5000/${b.image}`}
-                  alt={b.title}
-                  className="h-full object-cover rounded"
-                />
-              ) : (
-                <span className="text-gray-400">No Image</span>
-              )}
-            </div>
-
-            {/* DETAILS */}
-            <h2 className="text-lg font-bold">{b.title}</h2>
-            <p className="text-gray-400 text-sm">{b.author}</p>
-
-            <p className="text-xs mt-1 text-gray-500">
-              Available: {b.quantity}
-            </p>
-
-            {/* ACTION */}
-            <button
-              onClick={() => setSelectedBook(b)}
-              className="mt-3 w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg"
-            >
-              📖 Read Book
-            </button>
-          </div>
-        ))}
+      {/* SEARCH */}
+      <div className="flex justify-center mb-10">
+        <input
+          type="text"
+          placeholder="Search by title or author..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-xl p-3 rounded-lg bg-white/10 border border-gray-500 outline-none focus:border-blue-500"
+        />
       </div>
 
-      {/* MODAL READER */}
-      {selectedBook && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-gray-900 w-[90%] h-[90%] rounded-2xl p-4 relative">
-            {/* CLOSE */}
-            <button
-              onClick={() => setSelectedBook(null)}
-              className="absolute top-3 right-3 bg-red-600 px-3 py-1 rounded"
-            >
-              ✖
-            </button>
+      {/* LOADING */}
+      {loading ? (
+        <p className="text-center text-gray-400">Loading books...</p>
+      ) : (
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* EMPTY STATE */}
+          {filteredBooks.length === 0 ? (
+            <p className="text-center text-gray-400 col-span-3">
+              No books found
+            </p>
+          ) : (
+            filteredBooks.map((book) => (
+              <div
+                key={book.id}
+                className="bg-white/5 border border-white/10 p-5 rounded-2xl hover:scale-105 transition"
+              >
+                {/* TITLE */}
+                <h2 className="text-xl font-bold text-blue-300">
+                  {book.title}
+                </h2>
 
-            <h2 className="text-xl mb-3">{selectedBook.title}</h2>
+                {/* AUTHOR */}
+                <p className="text-gray-400 mt-1">Author: {book.author}</p>
 
-            {/* FILE VIEWER */}
-            {selectedBook.file ? (
-              <iframe
-                src={`http://127.0.0.1:5000/${selectedBook.file}`}
-                title="Book Reader"
-                className="w-full h-full rounded"
-              />
-            ) : (
-              <p className="text-gray-400">No file available</p>
-            )}
-          </div>
+                {/* QUANTITY */}
+                <p className="text-gray-400">Available: {book.quantity}</p>
+
+                {/* FILE */}
+                {book.file && (
+                  <a
+                    href={`http://127.0.0.1:5000/uploads/${book.file}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-green-400 underline block mt-2"
+                  >
+                    📖 Open Book File
+                  </a>
+                )}
+
+                {/* ACTIONS */}
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => requestBorrow(book.id)}
+                    className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm"
+                  >
+                    Request Borrow
+                  </button>
+
+                  {book.file && (
+                    <a
+                      href={`http://127.0.0.1:5000/uploads/${book.file}`}
+                      download
+                      className="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-sm"
+                    >
+                      Download
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

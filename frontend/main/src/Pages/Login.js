@@ -11,7 +11,6 @@ function Login() {
 
   const [loading, setLoading] = useState(false);
 
-  // INPUT CHANGE
   const handleChange = (e) => {
     setForm({
       ...form,
@@ -19,7 +18,6 @@ function Login() {
     });
   };
 
-  // LOGIN
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -42,13 +40,7 @@ function Login() {
         }),
       });
 
-      let data;
-
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("Invalid server response");
-      }
+      const data = await res.json();
 
       console.log("LOGIN RESPONSE:", data);
 
@@ -56,20 +48,22 @@ function Login() {
         throw new Error(data.error || "Login failed");
       }
 
-      // ✅ SUCCESS
       if (data.token) {
-        // 🔥 clear old session (IMPORTANT FIX)
-        localStorage.removeItem("user");
+        // ✅ FIX: store full session properly
+        const userData = {
+          token: data.token,
+          role: data.role,
+          username: form.username, // 🔥 FIX (important)
+        };
 
-        // save new session
-        localStorage.setItem("user", JSON.stringify(data));
+        localStorage.setItem("user", JSON.stringify(userData));
 
-        // 🔥 trigger navbar update instantly
+        // navbar update trigger
         window.dispatchEvent(new Event("storage"));
 
-        alert(`Welcome ${data.username} ✅`);
+        alert(`Welcome ${form.username} ✅`);
 
-        // ROLE BASED REDIRECT
+        // redirect
         if (data.role === "admin") {
           navigate("/dashboard");
         } else {
@@ -79,11 +73,8 @@ function Login() {
         throw new Error("Token missing from server");
       }
     } catch (error) {
-      console.error("LOGIN ERROR:", error);
-
-      alert(error.message || "Server error, please try again");
-
-      // ❌ if error → remove bad token
+      console.log(error);
+      alert(error.message || "Server error");
       localStorage.removeItem("user");
     }
 
@@ -100,7 +91,6 @@ function Login() {
 
         <p className="text-center text-gray-300 mb-6">Login as Admin or User</p>
 
-        {/* USERNAME */}
         <input
           name="username"
           value={form.username}
@@ -109,7 +99,6 @@ function Login() {
           placeholder="Username"
         />
 
-        {/* PASSWORD */}
         <input
           type="password"
           name="password"
@@ -119,7 +108,6 @@ function Login() {
           placeholder="Password"
         />
 
-        {/* LOGIN BUTTON */}
         <button
           type="submit"
           disabled={loading}
@@ -128,7 +116,6 @@ function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* EXTRA LINKS */}
         <div className="flex justify-between items-center mt-4 text-sm text-gray-300">
           <label className="flex items-center gap-2">
             <input type="checkbox" /> Remember me
@@ -139,7 +126,6 @@ function Login() {
           </Link>
         </div>
 
-        {/* REGISTER */}
         <p className="text-center mt-6 text-gray-300">
           Don't have an account?{" "}
           <Link className="text-blue-400" to="/register">

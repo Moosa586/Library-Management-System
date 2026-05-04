@@ -14,12 +14,22 @@ function Register() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  // 🚀 REGISTER API
+  // ================= REGISTER =================
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🔥 VALIDATION
+    if (!form.name || !form.email || !form.username || !form.password) {
+      alert("⚠ Please fill all fields");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -35,15 +45,31 @@ function Register() {
 
       console.log("REGISTER RESPONSE:", data);
 
-      if (data.status === "success") {
-        alert("✅ Registration successful!");
+      // ❌ ERROR HANDLING (backend sends error key)
+      if (!res.ok) {
+        throw new Error(data.error || "Registration failed");
+      }
+
+      // ✅ SUCCESS (backend returns message not status)
+      if (data.message) {
+        alert("✅ Account created successfully!");
+
+        // clear form
+        setForm({
+          name: "",
+          email: "",
+          username: "",
+          password: "",
+        });
+
+        // redirect to login
         navigate("/login");
       } else {
-        alert("❌ " + (data.error || "User already exists"));
+        throw new Error("Unexpected response from server");
       }
     } catch (error) {
       console.log("REGISTER ERROR:", error);
-      alert("❌ Server error, check backend");
+      alert("❌ " + error.message);
     }
 
     setLoading(false);
@@ -60,40 +86,37 @@ function Register() {
         </h2>
 
         <p className="text-center text-gray-300 mb-6">
-          Join the Library Management System
+          Join Library Management System
         </p>
 
-        {/* Name */}
+        {/* NAME */}
         <input
           name="name"
           value={form.name}
           onChange={handleChange}
           className="w-full p-3 mb-4 rounded-lg bg-white/10 border border-gray-500 outline-none focus:border-green-500"
           placeholder="Full Name"
-          required
         />
 
-        {/* Email */}
+        {/* EMAIL */}
         <input
           name="email"
           value={form.email}
           onChange={handleChange}
           className="w-full p-3 mb-4 rounded-lg bg-white/10 border border-gray-500 outline-none focus:border-green-500"
           placeholder="Email"
-          required
         />
 
-        {/* Username */}
+        {/* USERNAME */}
         <input
           name="username"
           value={form.username}
           onChange={handleChange}
           className="w-full p-3 mb-4 rounded-lg bg-white/10 border border-gray-500 outline-none focus:border-green-500"
           placeholder="Username"
-          required
         />
 
-        {/* Password */}
+        {/* PASSWORD */}
         <input
           type="password"
           name="password"
@@ -101,18 +124,18 @@ function Register() {
           onChange={handleChange}
           className="w-full p-3 mb-4 rounded-lg bg-white/10 border border-gray-500 outline-none focus:border-green-500"
           placeholder="Password"
-          required
         />
 
-        {/* Button */}
+        {/* BUTTON */}
         <button
           type="submit"
           disabled={loading}
           className="w-full bg-green-600 hover:bg-green-700 transition py-3 rounded-lg font-semibold shadow-lg"
         >
-          {loading ? "Registering..." : "Register"}
+          {loading ? "Creating account..." : "Register"}
         </button>
 
+        {/* LOGIN LINK */}
         <p className="text-center mt-6 text-gray-300">
           Already have an account?{" "}
           <Link className="text-blue-400" to="/login">

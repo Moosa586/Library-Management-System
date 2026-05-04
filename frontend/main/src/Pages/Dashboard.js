@@ -9,42 +9,40 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
+
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // ================= FETCH DATA =================
   const fetchData = async () => {
     try {
-      // ❌ if no user → redirect
-      if (!user || !user.token) {
+      if (!user?.token) {
         navigate("/login");
         return;
       }
 
       const headers = {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${user.token}`,
       };
 
-      // ✅ parallel API calls (fast + safe)
       const [bookRes, userRes, borrowRes] = await Promise.all([
         fetch("http://127.0.0.1:5000/books", { headers }),
         fetch("http://127.0.0.1:5000/users", { headers }),
-        fetch("http://127.0.0.1:5000/borrows", { headers }),
+        fetch("http://127.0.0.1:5000/borrows", { headers }).catch(() => null),
       ]);
 
-      // ❌ handle API errors
-      if (!bookRes.ok || !userRes.ok || !borrowRes.ok) {
-        throw new Error("API Error - Unauthorized or Server Down");
+      const booksData = await bookRes.json();
+      const usersData = await userRes.json();
+
+      setBooks(Array.isArray(booksData) ? booksData : []);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+
+      if (borrowRes && borrowRes.ok) {
+        const borrowsData = await borrowRes.json();
+        setBorrows(Array.isArray(borrowsData) ? borrowsData : []);
       }
-
-      const bookData = await bookRes.json();
-      const userData = await userRes.json();
-      const borrowData = await borrowRes.json();
-
-      setBooks(Array.isArray(bookData) ? bookData : []);
-      setUsers(Array.isArray(userData) ? userData : []);
-      setBorrows(Array.isArray(borrowData) ? borrowData : []);
-    } catch (error) {
-      console.error("DASHBOARD ERROR:", error);
-      alert("Server error or unauthorized access");
+    } catch (err) {
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -54,55 +52,108 @@ function AdminDashboard() {
     fetchData();
   }, []);
 
-  const Card = ({ title, value, color }) => (
-    <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl">
-      <p className="text-gray-400">{title}</p>
-      <h2 className={`text-3xl font-bold ${color}`}>{value}</h2>
-    </div>
-  );
+  // ================= DELETE BOOK =================
+  const deleteBook = async (id) => {
+    if (!window.confirm("Delete this book?")) return;
 
-  // ✅ LOADING STATE
+    await fetch(`http://127.0.0.1:5000/books/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${user.token}`,
+      },
+    });
+
+    fetchData();
+  };
+
+  // ================= DELETE USER =================
+  const deleteUser = async (id) => {
+    if (!window.confirm("Delete this user?")) return;
+
+    await fetch(`http://127.0.0.1:5000/users/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${user.token}`,
+      },
+    });
+
+    fetchData();
+  };
+
   if (loading) {
     return (
       <AdminLayout>
-        <p className="text-white">Loading dashboard...</p>
+        <p className="text-white">Loading...</p>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl font-bold mb-6">📊 Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold text-blue-400 mb-6">
+        📊 Admin Dashboard
+      </h1>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card title="Books" value={books.length} color="text-blue-400" />
-        <Card title="Users" value={users.length} color="text-green-400" />
-        <Card title="Borrows" value={borrows.length} color="text-purple-400" />
+      {/* ================= BOOKS ================= */}
+      <h2 className="text-xl text-blue-300 mb-3">📚 Books</h2>
+
+      <div className="grid gap-3">
+        {books.map((b) => (
+          <div
+            key={b.id}
+            className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between"
+          >
+            <div>
+              <p className="text-white font-semibold">{b.title}</p>
+              <p className="text-gray-400 text-sm">{b.author}</p>
+            </div>
+
+            <button
+              onClick={() => deleteBook(b.id)}
+              className="bg-red-600 px-3 py-1 rounded"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
       </div>
 
-      {/* RECENT BORROWS */}
-      <div className="mt-8">
-        <h2 className="text-xl mb-4">📖 Recent Borrows</h2>
+      {/* ================= USERS ================= */}
+      <h2 className="text-xl text-green-300 mt-10 mb-3">👥 Users</h2>
 
-        <div className="grid gap-3">
-          {borrows.length === 0 ? (
-            <p className="text-gray-400">No borrow activity</p>
-          ) : (
-            borrows.slice(0, 5).map((b) => (
-              <div
-                key={b.id}
-                className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between"
-              >
-                <div>
-                  <p>Book ID: {b.book_id}</p>
-                  <p className="text-gray-400 text-sm">User: {b.user}</p>
-                </div>
-                <span className="text-yellow-400">Fine: {b.fine}</span>
-              </div>
-            ))
-          )}
-        </div>
+      <div className="grid gap-3">
+        {users.map((u) => (
+          <div
+            key={u.id}
+            className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between"
+          >
+            <div>
+              <p className="text-white">{u.name}</p>
+              <p className="text-gray-400 text-sm">{u.email}</p>
+            </div>
+
+            <button
+              onClick={() => deleteUser(u.id)}
+              className="bg-red-600 px-3 py-1 rounded"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* ================= BORROWS ================= */}
+      <h2 className="text-xl text-purple-300 mt-10 mb-3">📖 Recent Borrows</h2>
+
+      <div className="grid gap-3">
+        {borrows.slice(0, 5).map((b, i) => (
+          <div
+            key={i}
+            className="p-4 bg-white/5 border border-white/10 rounded-xl"
+          >
+            Book ID: {b.book_id} | User: {b.user}
+          </div>
+        ))}
       </div>
     </AdminLayout>
   );

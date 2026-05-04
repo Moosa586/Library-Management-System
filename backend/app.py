@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import sqlite3
 import os
@@ -6,24 +6,37 @@ import jwt
 import bcrypt
 from functools import wraps
 from datetime import datetime, timedelta, timezone
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "my_super_secure_library_system_2026_key_12345"
+app.config["SECRET_KEY"] = "library_system_2026_secret"
 
-# ✅ FIX: CORS full allow (frontend errors fix)
+# ================= CORS =================
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# ================= DB =================
+# ================= ROOT ROUTE FIX =================
+@app.route("/")
+def home():
+    return {
+        "status": "success",
+        "message": "🔥 moosa backend chal raha hai ok"
+    }
+
+# ================= UPLOAD FOLDER =================
+UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "library.db")
 
 
+# ================= DB =================
 def connect_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-# ================= INIT DB =================
 def init_db():
     conn = connect_db()
     cursor = conn.cursor()
@@ -34,7 +47,7 @@ def init_db():
             name TEXT,
             email TEXT,
             username TEXT UNIQUE,
-            password BLOB,
+            password TEXT,
             role TEXT DEFAULT 'user'
         )
     """)
@@ -44,30 +57,9 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
             author TEXT,
-            quantity INTEGER
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS borrow_requests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user TEXT,
-            book_id INTEGER,
-            status TEXT DEFAULT 'pending',
-            request_date TEXT
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS borrows (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user TEXT,
-            book_id INTEGER,
-            borrow_date TEXT,
-            due_date TEXT,
-            return_date TEXT,
-            status TEXT DEFAULT 'borrowed',
-            fine INTEGER DEFAULT 0
+            category TEXT,
+            image TEXT,
+            file TEXT
         )
     """)
 
@@ -82,13 +74,12 @@ init_db()
 def token_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        token = request.headers.get("Authorization")
-
-        if not token:
+        auth = request.headers.get("Authorization")
+        if not auth:
             return jsonify({"error": "Token missing"}), 401
 
         try:
-            token = token.split(" ")[1]
+            token = auth.split(" ")[1]
             data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
             request.user = data
         except:
@@ -109,18 +100,20 @@ def admin_only(f):
     return wrapper
 
 
-# ================= HOME =================
-@app.route("/")
-def home():
-    return jsonify({"message": "Library API Running 🚀"})
-
-
 # ================= REGISTER =================
 @app.route("/register", methods=["POST"])
 def register():
-    data = request.json
+    data = request.get_json()
 
-    hashed = bcrypt.hashpw(data["password"].encode(), bcrypt.gensalt())
+    name = data.get("name")
+    email = data.get("email")
+    username = data.get("username")
+    password = data.get("password")
+
+    if not all([name, email, username, password]):
+        return jsonify({"error": "Missing fields"}), 400
+
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     conn = connect_db()
     cursor = conn.cursor()
@@ -129,25 +122,25 @@ def register():
         cursor.execute("""
             INSERT INTO users (name, email, username, password)
             VALUES (?, ?, ?, ?)
-        """, (data["name"], data["email"], data["username"], hashed))
+        """, (name, email, username, hashed))
 
         conn.commit()
         return jsonify({"message": "User registered"})
-    except:
-        return jsonify({"error": "Username already exists"})
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "User already exists"}), 409
     finally:
         conn.close()
 
 
-# ================= LOGIN (FIXED + CLEAN) =================
+# ================= LOGIN =================
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
 
-    username = data.get("username", "").strip()
-    password = data.get("password", "").strip()
+    username = data.get("username")
+    password = data.get("password")
 
-    # ---------- ADMIN ----------
+    # ADMIN LOGIN
     if username == "admin" and password == "admin123":
         token = jwt.encode({
             "username": "admin",
@@ -155,13 +148,8 @@ def login():
             "exp": datetime.now(timezone.utc) + timedelta(hours=5)
         }, app.config["SECRET_KEY"], algorithm="HS256")
 
-        return jsonify({
-            "token": token,
-            "role": "admin",
-            "username": "admin"
-        })
+        return jsonify({"token": token, "role": "admin"})
 
-    # ---------- USER ----------
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -169,176 +157,125 @@ def login():
     user = cursor.fetchone()
     conn.close()
 
-    if user and bcrypt.checkpw(password.encode(), user["password"]):
+    if user and bcrypt.checkpw(password.encode(), user["password"].encode()):
         token = jwt.encode({
             "username": user["username"],
             "role": user["role"],
             "exp": datetime.now(timezone.utc) + timedelta(hours=5)
         }, app.config["SECRET_KEY"], algorithm="HS256")
 
-        return jsonify({
-            "token": token,
-            "role": user["role"],
-            "username": user["username"]
-        })
+        return jsonify({"token": token, "role": user["role"]})
 
-    return jsonify({"error": "Invalid username or password"}), 401
+    return jsonify({"error": "Invalid credentials"}), 401
+
+
+# ================= ADD BOOK (FIXED) =================
+@app.route("/add-book", methods=["POST"])
+@token_required
+@admin_only
+def add_book():
+    try:
+        title = request.form.get("title")
+        author = request.form.get("author")
+        category = request.form.get("category")
+
+        file = request.files.get("file")
+        image = request.files.get("image")
+
+        file_name = None
+        image_name = None
+
+        if file:
+            file_name = secure_filename(file.filename)
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], file_name))
+
+        if image:
+            image_name = secure_filename(image.filename)
+            image.save(os.path.join(app.config["UPLOAD_FOLDER"], image_name))
+
+        conn = connect_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO books (title, author, category, image, file)
+            VALUES (?, ?, ?, ?, ?)
+        """, (title, author, category, image_name, file_name))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({"message": "Book added successfully"})
+
+    except Exception as e:
+        print("ADD BOOK ERROR:", e)
+        return jsonify({"error": "Server error"}), 500
 
 
 # ================= BOOKS =================
 @app.route("/books")
-@token_required
 def books():
     conn = connect_db()
     cursor = conn.cursor()
+
     cursor.execute("SELECT * FROM books")
     data = cursor.fetchall()
+
     conn.close()
     return jsonify([dict(b) for b in data])
 
 
-# ================= BORROW REQUEST =================
-@app.route("/request-borrow/<int:book_id>", methods=["POST"])
-@token_required
-def request_borrow(book_id):
-
-    conn = connect_db()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO borrow_requests (user, book_id, request_date)
-        VALUES (?, ?, ?)
-    """, (request.user["username"], book_id, str(datetime.now().date())))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({"message": "Borrow request sent"})
-
-
-# ================= APPROVE REQUEST =================
-@app.route("/approve/<int:req_id>", methods=["POST"])
+# ================= DELETE BOOK =================
+@app.route("/books/<int:book_id>", methods=["DELETE"])
 @token_required
 @admin_only
-def approve(req_id):
-
+def delete_book(book_id):
     conn = connect_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM borrow_requests WHERE id=?", (req_id,))
-    req = cursor.fetchone()
-
-    if not req:
-        return jsonify({"error": "Request not found"}), 400
-
-    borrow_date = datetime.now().date()
-    due_date = borrow_date + timedelta(days=7)
-
-    cursor.execute("""
-        INSERT INTO borrows (user, book_id, borrow_date, due_date)
-        VALUES (?, ?, ?, ?)
-    """, (req["user"], req["book_id"], str(borrow_date), str(due_date)))
-
-    cursor.execute("UPDATE borrow_requests SET status='approved' WHERE id=?", (req_id,))
-
+    cursor.execute("DELETE FROM books WHERE id=?", (book_id,))
     conn.commit()
     conn.close()
 
-    return jsonify({"message": "Request approved"})
+    return jsonify({"message": "Book deleted"})
 
 
-# ================= REJECT REQUEST =================
-@app.route("/reject/<int:req_id>", methods=["POST"])
+# ================= DELETE USER =================
+@app.route("/users/<int:user_id>", methods=["DELETE"])
 @token_required
 @admin_only
-def reject(req_id):
-
+def delete_user(user_id):
     conn = connect_db()
     cursor = conn.cursor()
 
-    cursor.execute("UPDATE borrow_requests SET status='rejected' WHERE id=?", (req_id,))
+    cursor.execute("DELETE FROM users WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
 
-    return jsonify({"message": "Request rejected"})
+    return jsonify({"message": "User deleted"})
 
 
-# ================= BORROWS =================
-@app.route("/borrows")
+# ================= USERS =================
+@app.route("/users")
 @token_required
-def borrows():
+@admin_only
+def users():
     conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM borrows")
+
+    cursor.execute("SELECT id, name, email, username, role FROM users")
     data = cursor.fetchall()
-    conn.close()
-    return jsonify([dict(b) for b in data])
-
-
-# ================= RETURN BOOK =================
-@app.route("/return/<int:borrow_id>", methods=["POST"])
-@token_required
-def return_book(borrow_id):
-
-    conn = connect_db()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT due_date FROM borrows WHERE id=?", (borrow_id,))
-    row = cursor.fetchone()
-
-    if not row:
-        return jsonify({"error": "Invalid ID"}), 400
-
-    due_date = datetime.strptime(row["due_date"], "%Y-%m-%d").date()
-    today = datetime.now().date()
-
-    fine = 0
-    if today > due_date:
-        fine = (today - due_date).days * 10
-
-    cursor.execute("""
-        UPDATE borrows
-        SET status='returned', return_date=?, fine=?
-        WHERE id=?
-    """, (str(today), fine, borrow_id))
-
-    conn.commit()
-    conn.close()
-
-    return jsonify({"message": "Returned", "fine": fine})
-
-
-# ================= STATS (DASHBOARD) =================
-@app.route("/stats")
-@token_required
-@admin_only
-def stats():
-
-    conn = connect_db()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM books")
-    books = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM users")
-    users = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM borrows WHERE status='borrowed'")
-    active = cursor.fetchone()[0]
-
-    cursor.execute("SELECT SUM(fine) FROM borrows")
-    fine = cursor.fetchone()[0] or 0
 
     conn.close()
+    return jsonify([dict(u) for u in data])
 
-    return jsonify({
-        "books": books,
-        "users": users,
-        "active_borrows": active,
-        "total_fine": fine
-    })
+
+# ================= FILES =================
+@app.route("/uploads/<filename>")
+def uploads(filename):
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 
 # ================= RUN =================
 if __name__ == "__main__":
+    print("🔥 Library System Running...")
     app.run(debug=True)

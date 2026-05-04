@@ -17,6 +17,9 @@ function BookList() {
     fetchBooks();
   }, []);
 
+  const params = new URLSearchParams(window.location.search);
+  const query = params.get("q");
+
   const borrow = async (id) => {
     await fetch(`http://127.0.0.1:5000/borrow/${id}`, {
       method: "POST",
